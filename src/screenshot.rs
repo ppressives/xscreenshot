@@ -60,3 +60,12 @@ impl XScreen {
         img
     }
 }
+
+impl Drop for XScreen {
+    fn drop(&mut self) {
+        unsafe {
+            xlib::XDestroyWindow(self.display, self.window_root);
+            xlib::XCloseDisplay(self.display);
+        }
+    }
+}
