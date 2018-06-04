@@ -1,0 +1,11 @@
+[package]
+name = "xscreenshot"
+version = "0.1.0"
+authors = ["belyaev <ppressives@yahoo.com>"]
+
+[dependencies]
+image = "0.19.0"
+
+[dependencies.x11]
+version = "2.17.5"
+features = ["xlib"]
