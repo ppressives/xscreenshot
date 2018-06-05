@@ -1,4 +1,3 @@
-use image::{ImageBuffer, Rgb};
 use std::ptr;
 use x11::xlib::{
     Display,

@@ -23,8 +23,8 @@ impl XScreen {
                 ZPixmap,
             );
         }
-        let pixels = image_to_pixels(image, (w * h) as usize);
-        create_image_buffer(pixels, w, h)
+        let pixels = XScreen::image_to_pixels(image, (w * h) as usize);
+        XScreen::create_image_buffer(pixels, w, h)
     }
 
     fn image_to_pixels<'a>(image: *mut XImage, size: usize) -> &'a [BGR] {
