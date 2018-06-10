@@ -1,51 +1,59 @@
 use xscreen::XScreen;
+use selection::Selection;
+use selection::Point;
 use x11::xlib::{
     XAllowEvents,
+    XGrabPointer,
+    XDrawRectangle,
     AsyncBoth,
     CurrentTime,
-    XGrabPointer,
     ButtonPressMask,
     ButtonReleaseMask,
+    ButtonMotionMask,
     GrabModeAsync,
     XEvent,
     XNextEvent,
     ButtonPress,
     ButtonRelease,
+    MotionNotify,
 };
 use std::mem;
-
-pub struct Selection {
-    pub x1: u32,
-    pub y1: u32,
-    pub x2: u32,
-    pub y2: u32,
-}
-
-struct Point(u32, u32);
 
 impl XScreen {
     pub fn select_frame(&self) -> Selection {
         self.subscribe_events();
 
-        let mut top_left: Point = Point(0, 0);
-        let mut bottom_right: Point = Point(0, 0);
+        let mut start = Point::new(0, 0);
+        let mut end = Point::new(0, 0);
+
+        let mut drawn = false;
 
         unsafe {
             let mut event: XEvent = mem::zeroed();
             loop {
                 XNextEvent(self.display, &mut event);
+                if drawn { //clear rect
+                    self.draw_rect(Selection::new(&start, &end));
+                }
                 match event.get_type() {
                     ButtonPress => {
-                        top_left = Point(event.motion.x as u32, event.motion.y as u32);
+                        start = Point::new(event.motion.x as u32, event.motion.y as u32);
+                        end = start.clone();
                     }
                     ButtonRelease => {
-                        bottom_right = Point(event.motion.x as u32, event.motion.y as u32);
+                        end = Point::new(event.motion.x as u32, event.motion.y as u32);
                         break;
+                    }
+                    MotionNotify => {
+                        end = Point::new(event.motion.x as u32, event.motion.y as u32);
                     }
                     _ => ()
                 }
+                self.draw_rect(Selection::new(&start, &end));
+                drawn = true;
             }
-            Selection::new(top_left, bottom_right)
+
+            Selection::new(&start, &end)
         }
     }
 
@@ -56,7 +64,7 @@ impl XScreen {
                 self.display,
                 self.window_root,
                 1,
-                (ButtonPressMask | ButtonReleaseMask) as u32,
+                (ButtonMotionMask | ButtonPressMask | ButtonReleaseMask) as u32,
                 GrabModeAsync,
                 GrabModeAsync,
                 0,
@@ -65,10 +73,18 @@ impl XScreen {
             );
         }
     }
-}
 
-impl Selection {
-    fn new(top_left: Point, bottom_right: Point) -> Selection {
-        Selection { x1: top_left.0, y1: top_left.1, x2: bottom_right.0, y2: bottom_right.1 }
+    fn draw_rect(&self, selection: Selection) {
+        unsafe {
+            XDrawRectangle(
+                self.display,
+                self.window_root,
+                self.gc,
+                selection.x1 as i32,
+                selection.y1 as i32,
+                selection.width(),
+                selection.height(),
+            );
+        }
     }
 }
